@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US Air Quality Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+</head>
+<body>
+    <div class="scanline-overlay"></div>
+    <div class="container">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <div class="header-badge">LIVE DATA</div>
+                <h1>US AIR QUALITY <span class="accent">ANALYTICS</span></h1>
+                <p class="header-sub">Environmental Monitoring System · 2000–2021</p>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label class="control-label">POLLUTANT</label>
+                    <div class="select-wrapper">
+                        <select id="pollutant-selector">
+                            <option value="Overall_AQI">Overall AQI</option>
+                            <option value="NO2 Mean">Nitrogen Dioxide (NO2)</option>
+                            <option value="CO Mean">Carbon Monoxide (CO)</option>
+                            <option value="SO2 Mean">Sulfur Dioxide (SO2)</option>
+                            <option value="O3 Mean">Ozone (O3)</option>
+                        </select>
+                        <span class="select-arrow">▾</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">YEAR — <span class="year-display" id="year-val">2021</span></label>
+                    <div class="slider-track">
+                        <input type="range" id="year-slider" min="2000" max="2021" value="2021">
+                        <div class="slider-labels">
+                            <span>2000</span>
+                            <span>2021</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="reset-btn">
+                    <span class="btn-icon">↺</span>
+                    RESET VIEW
+                </button>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <div class="left-col">
+                <div class="card map-box">
+                    <div class="card-header">
+                        <h2>DISTRIBUTION MAP <span class="card-year" id="map-year-txt">(2021)</span></h2>
+                        <div class="aqi-legend">
+                            <span class="legend-item"><span class="dot" style="background:#00e400"></span>Good</span>
+                            <span class="legend-item"><span class="dot" style="background:#ffff00"></span>Moderate</span>
+                            <span class="legend-item"><span class="dot" style="background:#ff7e00"></span>Unhealthy</span>
+                            <span class="legend-item"><span class="dot" style="background:#ff0000"></span>Very Unhealthy</span>
+                        </div>
+                    </div>
+                    <div id="map-container"></div>
+                </div>
+                <div class="card line-box">
+                    <div class="card-header">
+                        <h2>TREND ANALYSIS — <span class="card-state accent" id="state-name-txt">National Average</span></h2>
+                        <span class="card-hint">Click a state on the map to filter</span>
+                    </div>
+                    <div id="line-chart-container"></div>
+                </div>
+            </div>
+
+            <div class="right-col">
+                <div class="card top5-box">
+                    <div class="card-header">
+                        <h2>TOP 5 MOST POLLUTED</h2>
+                        <p class="subtitle" id="pollutant-name-txt">Overall AQI</p>
+                    </div>
+                    <div id="top-5-list"></div>
+                </div>
+
+                <div class="card info-box">
+                    <h2>AQI SCALE</h2>
+                    <div class="aqi-scale">
+                        <div class="scale-row">
+                            <div class="scale-bar" style="background:#00e400"></div>
+                            <div class="scale-info">
+                                <span class="scale-label">0–50</span>
+                                <span class="scale-name">Good</span>
+                            </div>
+                        </div>
+                        <div class="scale-row">
+                            <div class="scale-bar" style="background:#ffff00"></div>
+                            <div class="scale-info">
+                                <span class="scale-label">51–100</span>
+                                <span class="scale-name">Moderate</span>
+                            </div>
+                        </div>
+                        <div class="scale-row">
+                            <div class="scale-bar" style="background:#ff7e00"></div>
+                            <div class="scale-info">
+                                <span class="scale-label">101–150</span>
+                                <span class="scale-name">Unhealthy for Sensitive Groups</span>
+                            </div>
+                        </div>
+                        <div class="scale-row">
+                            <div class="scale-bar" style="background:#ff0000"></div>
+                            <div class="scale-info">
+                                <span class="scale-label">151–200</span>
+                                <span class="scale-name">Unhealthy</span>
+                            </div>
+                        </div>
+                        <div class="scale-row">
+                            <div class="scale-bar" style="background:#8f3f97"></div>
+                            <div class="scale-info">
+                                <span class="scale-label">200+</span>
+                                <span class="scale-name">Very Unhealthy / Hazardous</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tooltip" class="tooltip-container"></div>
+    <script src="app.js"></script>
+</body>
+</html>
