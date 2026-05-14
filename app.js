@@ -1,12 +1,11 @@
 const appState = {
     year: 2021,
     pollutant: 'Overall_AQI',
-    selectedState: null,
+    selectedStates: [], 
     rawData: [],
     geoData: null
 };
 
-// CHỐT CỨNG 51 BANG ĐỂ XÓA 2 Ô VUÔNG RÁC
 const validStates = [
     "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware",
     "District of Columbia","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
@@ -17,29 +16,36 @@ const validStates = [
     "Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"
 ];
 
-// States that are rendered inline (not in inset boxes)
 const mainStates = validStates.filter(s => s !== "Alaska" && s !== "Hawaii");
-
 const tooltip = d3.select("#tooltip");
 
 Promise.all([
-    d3.json("pollution_yearly_avg.json"),
-    // Use albersusa topojson which has proper AK/HI insets already handled,
-    // or use the census cartographic boundary which is clean.
-    // Using a reliable source that has individual state features without a bounding box.
+    d3.json("pollution_yearly_avg.json", d => {
+        return {
+            Year: +d.Year,
+            State: d.State,
+            "CO Mean": +d["CO Mean"],
+            "NO2 Mean": +d["NO2 Mean"],
+            "SO2 Mean": +d["SO2 Mean"],
+            "O3 Mean": +d["O3 Mean"],
+            "Overall_AQI": +d["Overall_AQI"],
+            "CO AQI": +d["CO AQI"],
+            "NO2 AQI": +d["NO2 AQI"],
+            "SO2 AQI": +d["SO2 AQI"],
+            "O3 AQI": +d["O3 AQI"],
+            Main_Pollutant: d.Main_Pollutant
+        };
+    }),
     d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json")
 ]).then(([data, us]) => {
     appState.rawData = data;
-    // Convert topojson to geojson
     appState.geoData = topojson.feature(us, us.objects.states);
-    // Attach FIPS-to-name mapping
     appState.fipsMap = buildFipsMap();
     init();
 }).catch(err => {
     console.error("Data loading error:", err);
 });
 
-// FIPS codes for all 50 states + DC, excluding Alaska (02) and Hawaii (15)
 function buildFipsMap() {
     return {
         "01":"Alabama","02":"Alaska","04":"Arizona","05":"Arkansas","06":"California",
@@ -71,7 +77,10 @@ function init() {
     });
 
     d3.select("#reset-btn").on("click", () => {
-        appState.selectedState = null;
+        appState.selectedStates = [];
+        d3.selectAll(".state")
+            .attr("stroke", "#0a0a0c")
+            .attr("stroke-width", 0.8);
         update();
     });
 
@@ -84,13 +93,12 @@ function update() {
     renderLineChart();
 }
 
-// Assign a fixed unique color index to each state so colors never change
 const stateColorIndex = {};
 validStates.forEach((s, i) => { stateColorIndex[s] = i; });
 
 function getStateColor(stateName) {
     const idx = stateColorIndex[stateName] ?? 0;
-    const hue = (idx * 137.508) % 360; // golden angle — maximally distinct
+    const hue = (idx * 137.508) % 360; 
     return `hsl(${hue}, 65%, 52%)`;
 }
 
@@ -106,7 +114,6 @@ function renderMap() {
         .style("overflow", "visible")
         .style("display", "block");
 
-    // Map title overlay
     svg.append("text")
         .attr("x", 480)
         .attr("y", 28)
@@ -118,8 +125,6 @@ function renderMap() {
         .attr("font-family", "Segoe UI, Tahoma, sans-serif")
         .text(`POLLUTION MAP ${appState.year}`);
 
-    // AlbersUSA projection — this naturally places AK & HI as insets,
-    // but since we filter them out by FIPS, they simply won't appear.
     const projection = d3.geoAlbersUsa().scale(1280).translate([480, 300]);
     const path = d3.geoPath().projection(projection);
 
@@ -137,11 +142,9 @@ function renderMap() {
 
     const fipsMap = appState.fipsMap;
 
-    // Filter features: only include continental 48 + DC
-    // FIPS "02" = Alaska, "15" = Hawaii — exclude both
     const features = (appState.geoData.features || []).filter(f => {
         const fips = String(f.id).padStart(2, '0');
-        if (fips === "02" || fips === "15") return false; // No AK or HI
+        if (fips === "02" || fips === "15") return false; 
         const name = fipsMap[fips];
         if (!name) return false;
         if (!mainStates.includes(name)) return false;
@@ -155,7 +158,6 @@ function renderMap() {
         .enter().append("path")
         .attr("class", "state")
         .attr("d", d => {
-            // Some features may not project (outside AlbersUSA bounds) — guard against null
             const result = path(d);
             return result || "";
         })
@@ -165,8 +167,14 @@ function renderMap() {
             return name ? getStateColor(name) : "#333";
         })
         .attr("fill-opacity", 0.75)
-        .attr("stroke", "#0a0a0c")
-        .attr("stroke-width", 0.8)
+        .attr("stroke", d => {
+            const name = fipsMap[String(d.id).padStart(2, '0')];
+            return appState.selectedStates.includes(name) ? "#ffffff" : "#0a0a0c";
+        })
+        .attr("stroke-width", d => {
+            const name = fipsMap[String(d.id).padStart(2, '0')];
+            return appState.selectedStates.includes(name) ? 2.5 : 0.8;
+        })
         .attr("data-state", d => {
             const fips = String(d.id).padStart(2, '0');
             return fipsMap[fips] || "";
@@ -174,11 +182,17 @@ function renderMap() {
         .on("mouseover", function(event, d) {
             const fips = String(d.id).padStart(2, '0');
             const name = fipsMap[fips];
+
+            if (name === "West Virginia") {
+                tooltip.transition().duration(100).style("opacity", 1);
+                tooltip.html(`<div class="tooltip-wv">There is no available data for West Virginia</div>`);
+                return;
+            }
+
             const s = lookupState(name);
 
-            // Only highlight THIS path
             d3.select(this)
-                .raise() // bring to front so stroke isn't clipped
+                .raise() 
                 .attr("stroke", "#ffffff")
                 .attr("stroke-width", 2.5)
                 .attr("fill-opacity", 1);
@@ -204,20 +218,53 @@ function renderMap() {
                 .style("left", (event.pageX + 15) + "px")
                 .style("top", (event.pageY - 15) + "px");
         })
-        .on("mouseout", function() {
+        .on("mouseout", function(event, d) {
+            const fips = String(d.id).padStart(2, '0');
+            const name = fipsMap[fips];
+            const isSelected = appState.selectedStates.includes(name);
+
             d3.select(this)
-                .attr("stroke", "#0a0a0c")
-                .attr("stroke-width", 0.8)
+                .attr("stroke", isSelected ? "#ffffff" : "#0a0a0c")
+                .attr("stroke-width", isSelected ? 2.5 : 0.8)
                 .attr("fill-opacity", 0.75);
+                
             tooltip.transition().duration(200).style("opacity", 0);
         })
         .on("click", function(event, d) {
             const fips = String(d.id).padStart(2, '0');
-            appState.selectedState = fipsMap[fips] || null;
+            const stateName = fipsMap[fips];
+            
+            if (stateName === "West Virginia") return; 
+            if (!stateName) return;
+
+            const idx = appState.selectedStates.indexOf(stateName);
+            if (idx > -1) {
+                appState.selectedStates.splice(idx, 1);
+            } else {
+                if (appState.selectedStates.length >= 2) {
+                    appState.selectedStates.shift();
+                }
+                appState.selectedStates.push(stateName);
+            }
+
+            svg.selectAll(".state")
+                .attr("stroke", feature => {
+                    const fName = fipsMap[String(feature.id).padStart(2, '0')];
+                    return appState.selectedStates.includes(fName) ? "#ffffff" : "#0a0a0c";
+                })
+                .attr("stroke-width", feature => {
+                    const fName = fipsMap[String(feature.id).padStart(2, '0')];
+                    return appState.selectedStates.includes(fName) ? 2.5 : 0.8;
+                });
+            
+            svg.selectAll(".state").filter(feature => {
+                const fName = fipsMap[String(feature.id).padStart(2, '0')];
+                return appState.selectedStates.includes(fName);
+            }).raise();
+
             renderLineChart();
         });
 
-    // State abbreviation labels for larger states
     const labelStates = [
         "California","Texas","Montana","New Mexico","Arizona","Nevada","Colorado","Oregon",
         "Wyoming","Idaho","Utah","Kansas","Nebraska","South Dakota","North Dakota","Oklahoma",
@@ -296,78 +343,128 @@ function renderLineChart() {
     const height = container.node().clientHeight;
     container.selectAll("svg").remove();
 
-    const state = appState.selectedState;
-    d3.select("#state-name-txt").text(state ? state : "National Average");
+    const states = appState.selectedStates;
+    
+    let titleText = "National Average";
+    if (states.length === 1) titleText = states[0];
+    if (states.length === 2) titleText = `${states[0]} vs ${states[1]}`;
+    d3.select("#state-name-txt").text(titleText);
 
-    let data;
-    if (state) {
-        data = appState.rawData.filter(d => d.State === state || d.State.toLowerCase() === state.toLowerCase())
-            .sort((a, b) => a.Year - b.Year);
+    let chartData = [];
+    const pollutants = ["NO2 Mean", "CO Mean", "SO2 Mean", "O3 Mean"];
+    const colors = ["#ff4757", "#4db8ff", "#00e676", "#f9a825"];
+
+    if (states.length > 0) {
+        states.forEach(state => {
+            const stateData = appState.rawData
+                .filter(d => d.State === state)
+                .sort((a, b) => a.Year - b.Year);
+            if(stateData.length > 0) chartData.push({ name: state, data: stateData });
+        });
     } else {
         const years = [...new Set(appState.rawData.map(d => d.Year))].sort();
-        data = years.map(y => ({
-            Year: y,
-            [appState.pollutant]: d3.mean(appState.rawData.filter(d => d.Year === y), d => d[appState.pollutant])
-        }));
+        const natData = years.map(y => {
+            const yearRows = appState.rawData.filter(d => d.Year === y);
+            const row = { Year: y };
+            pollutants.forEach(p => {
+                row[p] = d3.mean(yearRows, d => d[p]);
+            });
+            return row;
+        });
+        chartData.push({ name: "National", data: natData });
     }
 
+    if (chartData.length === 0) return;
+
     const svg = container.append("svg").attr("width", width).attr("height", height);
-    const margin = { top: 20, right: 30, bottom: 40, left: 55 };
+    const margin = { top: 20, right: 100, bottom: 40, left: 55 };
     const innerW = width - margin.left - margin.right;
     const innerH = height - margin.top - margin.bottom;
 
     const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const x = d3.scaleLinear().domain(d3.extent(data, d => d.Year)).range([0, innerW]);
-    const y = d3.scaleLinear().domain([0, d3.max(data, d => d[appState.pollutant]) * 1.15]).range([innerH, 0]);
+    const yScales = {};
+    pollutants.forEach(p => {
+        let maxVal = 0;
+        chartData.forEach(series => {
+            const seriesMax = d3.max(series.data, d => d[p]);
+            if (seriesMax > maxVal) maxVal = seriesMax;
+        });
+        yScales[p] = d3.scaleLinear().domain([0, maxVal * 1.15]).range([innerH, 0]);
+    });
 
-    // Grid lines
-    g.append("g")
-        .attr("class", "grid")
-        .call(d3.axisLeft(y).tickSize(-innerW).tickFormat(""))
-        .selectAll("line")
-        .attr("stroke", "#2d2d35")
-        .attr("stroke-dasharray", "3,3");
-    g.select(".grid .domain").remove();
+    const x = d3.scaleLinear()
+        .domain([
+            d3.min(chartData[0].data, d => d.Year),
+            d3.max(chartData[0].data, d => d.Year)
+        ])
+        .range([0, innerW]);
 
-    // Axes
     g.append("g")
         .attr("transform", `translate(0,${innerH})`)
         .call(d3.axisBottom(x).tickFormat(d3.format("d")))
         .selectAll("text").attr("fill", "#aaa");
+
     g.append("g")
-        .call(d3.axisLeft(y))
+        .call(d3.axisLeft(yScales["NO2 Mean"]).ticks(5))
         .selectAll("text").attr("fill", "#aaa");
 
-    // Area fill
-    const area = d3.area()
-        .x(d => x(d.Year))
-        .y0(innerH)
-        .y1(d => y(d[appState.pollutant]));
+    g.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -40)
+        .attr("x", -innerH / 2)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#5a6480")
+        .style("font-size", "10px")
+        .text("Relative Trend Values");
 
-    g.append("path")
-        .datum(data)
-        .attr("fill", "rgba(77,184,255,0.12)")
-        .attr("d", area);
+    chartData.forEach((series, sIdx) => {
+        const isDashed = sIdx === 1;
+        const dashArray = isDashed ? "6,4" : "none";
 
-    // Line
-    const line = d3.line().x(d => x(d.Year)).y(d => y(d[appState.pollutant]));
-    g.append("path")
-        .datum(data)
-        .attr("fill", "none")
-        .attr("stroke", "#4db8ff")
-        .attr("stroke-width", 2.5)
-        .attr("d", line);
+        pollutants.forEach((p, pIdx) => {
+            const line = d3.line()
+                .x(d => x(d.Year))
+                .y(d => yScales[p](d[p]))
+                .curve(d3.curveMonotoneX);
 
-    // Dots
-    g.selectAll(".dot")
-        .data(data)
-        .enter().append("circle")
-        .attr("class", "dot")
-        .attr("cx", d => x(d.Year))
-        .attr("cy", d => y(d[appState.pollutant]))
-        .attr("r", 4)
-        .attr("fill", "#4db8ff")
-        .attr("stroke", "#0a0a0c")
-        .attr("stroke-width", 1.5);
+            g.append("path")
+                .datum(series.data)
+                .attr("fill", "none")
+                .attr("stroke", colors[pIdx])
+                .attr("stroke-width", 2.5)
+                .attr("stroke-dasharray", dashArray)
+                .attr("d", line);
+
+            g.selectAll(`.dot-${sIdx}-${pIdx}`)
+                .data(series.data)
+                .enter().append("circle")
+                .attr("cx", d => x(d.Year))
+                .attr("cy", d => yScales[p](d[p]))
+                .attr("r", 3.5)
+                .attr("fill", isDashed ? "#080a0e" : colors[pIdx])
+                .attr("stroke", colors[pIdx])
+                .attr("stroke-width", 1.5);
+        });
+    });
+
+    const legend = svg.append("g")
+        .attr("transform", `translate(${width - margin.right + 15}, ${margin.top})`);
+        
+    pollutants.forEach((p, i) => {
+        const legendRow = legend.append("g").attr("transform", `translate(0, ${i * 20})`);
+        legendRow.append("rect").attr("width", 12).attr("height", 12).attr("fill", colors[i]);
+        legendRow.append("text").attr("x", 18).attr("y", 10).attr("fill", "#c8d0e0").style("font-size", "11px").text(p.replace(" Mean", ""));
+    });
+
+    if (states.length === 2) {
+        const stateLegend = svg.append("g")
+            .attr("transform", `translate(${width - margin.right + 15}, ${margin.top + pollutants.length * 20 + 15})`);
+        
+        stateLegend.append("line").attr("x1", 0).attr("x2", 12).attr("y1", 6).attr("y2", 6).attr("stroke", "#fff").attr("stroke-width", 2);
+        stateLegend.append("text").attr("x", 18).attr("y", 10).attr("fill", "#fff").style("font-size", "10px").text(states[0]);
+        
+        stateLegend.append("line").attr("x1", 0).attr("x2", 12).attr("y1", 26).attr("y2", 26).attr("stroke", "#fff").attr("stroke-width", 2).attr("stroke-dasharray", "4,3");
+        stateLegend.append("text").attr("x", 18).attr("y", 30).attr("fill", "#fff").style("font-size", "10px").text(states[1]);
+    }
 }
