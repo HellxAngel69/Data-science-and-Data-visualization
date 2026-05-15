@@ -4,124 +4,285 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>US Air Quality Analytics</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="styles.css">
+
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 </head>
+
 <body>
     <div class="scanline-overlay"></div>
-    <div class="container">
-        <header class="dashboard-header">
-            <div class="header-left">
-                <div class="header-badge">LIVE DATA</div>
-                <h1>US AIR QUALITY <span class="accent">ANALYTICS</span></h1>
-                <p class="header-sub">Environmental Monitoring System · 2000–2021</p>
-            </div>
-            <div class="controls">
-                <div class="control-group">
-                    <label class="control-label">POLLUTANT</label>
-                    <div class="select-wrapper">
-                        <select id="pollutant-selector">
-                            <option value="Overall_AQI">Overall AQI</option>
-                            <option value="NO2 Mean">Nitrogen Dioxide (NO2)</option>
-                            <option value="CO Mean">Carbon Monoxide (CO)</option>
-                            <option value="SO2 Mean">Sulfur Dioxide (SO2)</option>
-                            <option value="O3 Mean">Ozone (O3)</option>
-                        </select>
-                        <span class="select-arrow">▾</span>
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label class="control-label">YEAR — <span class="year-display" id="year-val">2021</span></label>
-                    <div class="slider-track">
-                        <input type="range" id="year-slider" min="2000" max="2021" value="2021">
-                        <div class="slider-labels">
-                            <span>2000</span>
-                            <span>2021</span>
-                        </div>
-                    </div>
-                </div>
-                <button id="reset-btn">
-                    <span class="btn-icon">↺</span>
-                    RESET VIEW
-                </button>
-            </div>
-        </header>
 
-        <div class="main-layout">
-            <div class="left-col">
-                <div class="card map-box">
-                    <div class="card-header">
-                        <h2>DISTRIBUTION MAP <span class="card-year" id="map-year-txt">(2021)</span></h2>
-                    </div>
-                    <div id="map-container"></div>
-                </div>
-                <div class="card line-box">
-                    <div class="card-header">
-                        <h2>TREND ANALYSIS — <span class="card-state accent" id="state-name-txt">National Average</span></h2>
-                        <span class="card-hint">Select up to 2 states</span>
-                    </div>
-                    <div id="line-chart-container"></div>
-                </div>
+    <nav class="site-nav">
+        <div class="nav-logo">
+            <span class="nav-dot"></span>
+            US AIR QUALITY <span class="accent">ANALYTICS</span>
+        </div>
+
+        <div class="nav-center">
+            <button class="nav-btn active" data-page="intro">INTRO</button>
+            <button class="nav-btn" data-page="dataset">DATASET</button>
+            <button class="nav-btn" data-page="analytics">ANALYTICS</button>
+        </div>
+
+        <div class="nav-live">⌁ LIVE DATA</div>
+    </nav>
+
+    <section id="intro-section" class="page-section hero-section">
+        <div class="hero-content">
+            <div class="hero-tag">ENVIRONMENTAL MONITORING SYSTEM</div>
+
+            <h1 class="hero-title">
+                US AIR QUALITY
+                <span>ANALYTICS</span>
+            </h1>
+
+            <p class="hero-desc">
+                Explore air pollution trends, analyze key pollutants,
+                and discover insights across U.S. states from 2000 to 2021.
+            </p>
+
+            <div class="hero-actions">
+                <button class="hero-btn primary" data-page="analytics">EXPLORE ANALYTICS →</button>
+                <button class="hero-btn secondary" data-page="dataset">VIEW DATASET →</button>
             </div>
 
-            <div class="right-col">
-                <div class="card top5-box">
-                    <div class="card-header">
-                        <h2>TOP 5 MOST POLLUTED</h2>
-                        <p class="subtitle" id="pollutant-name-txt">Overall AQI</p>
-                    </div>
-                    <div id="top-5-list"></div>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-title">YEARS</div>
+                    <div class="stat-value">22+</div>
+                    <div class="stat-sub">2000–2021</div>
                 </div>
 
-                <div class="card info-box">
-                    <h2>AQI SCALE</h2>
-                    <div class="aqi-scale">
-                        <div class="scale-row">
-                            <div class="scale-bar" style="background:#00e400"></div>
-                            <div class="scale-info">
-                                <span class="scale-label">0–50</span>
-                                <span class="scale-name">Good</span>
+                <div class="stat-card">
+                    <div class="stat-title">STATES</div>
+                    <div class="stat-value">50</div>
+                    <div class="stat-sub">U.S. States</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-title">OBSERVATIONS</div>
+                    <div class="stat-value">1.4M+</div>
+                    <div class="stat-sub">Daily Records</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-title">POLLUTANTS</div>
+                    <div class="stat-value">4</div>
+                    <div class="stat-sub">Major Pollutants</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="dataset-section" class="page-section dataset-section hidden">
+        <div class="card dataset-card">
+            <h2>ABOUT DATASET</h2>
+        
+        <div class="card dataset-table-card">
+            <div class="card-header">
+                <h2>DATA PREVIEW</h2>
+                <span class="card-hint">First 100 Records</span>
+            </div>
+
+            <div id="dataset-table-container"></div>
+        </div>
+            <div class="dataset-block">
+                <h3>Context</h3>
+                <p>
+                    This dataset deals with pollution in the U.S. Pollution in the U.S. has been well documented by the U.S. EPA, but it is a pain to download all the data and arrange them in a format that interests data scientists. Hence, the dataset gathers four major pollutants: Nitrogen Dioxide, Sulphur Dioxide, Carbon Monoxide, and Ozone for every day from 2000–2021 and places them neatly in a CSV file.
+                </p>
+            </div>
+
+            <div class="dataset-block">
+                <h3>Content</h3>
+                <p>
+                    There is a total of 28 fields. The four pollutants, NO2, O3, SO2, and CO, each have 5 specific columns. Observations totaled over 1.4 million. This dataset provides a good introduction to U.S. air pollution analysis.
+                </p>
+            </div>
+
+            <div class="dataset-block">
+                <h3>Acknowledgements</h3>
+                <p>
+                    All the data is scraped from the database of the U.S. EPA:
+                    <a href="https://aqsdr1.epa.gov/aqsweb/aqstmp/airdata/download_files.html" target="_blank">
+                        EPA AirData Download Files
+                    </a>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section id="analytics-section" class="page-section hidden">
+        <div class="container">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <div class="header-badge">LIVE DATA</div>
+                    <h1>US AIR QUALITY <span class="accent">ANALYTICS</span></h1>
+                    <p class="header-sub">Environmental Monitoring System · 2000–2021</p>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label class="control-label">POLLUTANT</label>
+                        <div class="select-wrapper">
+                            <select id="pollutant-selector">
+                                <option value="Overall_AQI">Overall AQI</option>
+                                <option value="NO2 Mean">Nitrogen Dioxide (NO2)</option>
+                                <option value="CO Mean">Carbon Monoxide (CO)</option>
+                                <option value="SO2 Mean">Sulfur Dioxide (SO2)</option>
+                                <option value="O3 Mean">Ozone (O3)</option>
+                            </select>
+                            <span class="select-arrow">▾</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">YEAR — <span class="year-display" id="year-val">2021</span></label>
+                        <div class="slider-track">
+                            <input type="range" id="year-slider" min="2000" max="2021" value="2021">
+                            <div class="slider-labels">
+                                <span>2000</span>
+                                <span>2021</span>
                             </div>
                         </div>
-                        <div class="scale-row">
-                            <div class="scale-bar" style="background:#ffff00"></div>
-                            <div class="scale-info">
-                                <span class="scale-label">51–100</span>
-                                <span class="scale-name">Moderate</span>
+                    </div>
+
+                    <button id="reset-btn">
+                        <span class="btn-icon">↺</span>
+                        RESET VIEW
+                    </button>
+                </div>
+            </header>
+            <div class="data-warning-banner">
+    ⚠ Due to inconsistencies and missing EPA records, some states may not contain complete data across all years and pollutants.
+</div>
+            <div class="main-layout">
+                <div class="left-col">
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="map">MAP</button>
+                        <button class="view-btn" data-view="line">LINE</button>
+                        <button class="view-btn" data-view="heat">HEAT</button>
+                    </div>
+
+                    <div class="card map-box">
+                        <div class="card-header">
+                            <h2>DISTRIBUTION MAP <span class="card-year" id="map-year-txt">(2021)</span></h2>
+                        </div>
+                        <div id="map-container"></div>
+                    </div>
+
+                    <div class="card line-box">
+                        <div class="card-header">
+                            <h2>TREND ANALYSIS — <span class="card-state accent" id="state-name-txt">National Average</span></h2>
+
+                            <div class="line-control">
+                                <span class="card-hint">Select up to 2 states</span>
+
+                                <div class="select-wrapper line-state-select">
+                                    <select id="state-1-selector">
+                                        <option value="">State 1</option>
+                                    </select>
+                                    <span class="select-arrow">▾</span>
+                                </div>
+
+                                <div class="select-wrapper line-state-select">
+                                    <select id="state-2-selector">
+                                        <option value="">State 2</option>
+                                    </select>
+                                    <span class="select-arrow">▾</span>
+                                </div>
+
+                                <div class="select-wrapper line-select">
+                                    <select id="line-pollutant-selector">
+                                        <option value="All">All Pollutants</option>
+                                        <option value="NO2 Mean">NO2</option>
+                                        <option value="CO Mean">CO</option>
+                                        <option value="SO2 Mean">SO2</option>
+                                        <option value="O3 Mean">O3</option>
+                                    </select>
+                                    <span class="select-arrow">▾</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="scale-row">
-                            <div class="scale-bar" style="background:#ff7e00"></div>
-                            <div class="scale-info">
-                                <span class="scale-label">101–150</span>
-                                <span class="scale-name">Unhealthy for Sensitive Groups</span>
-                            </div>
+
+                        <div id="line-chart-container"></div>
+                    </div>
+
+                    <div class="card heatmap-box">
+                        <div class="card-header">
+                            <h2>HEATMAP ANALYSIS</h2>
+                            <span class="card-hint">States × Years</span>
                         </div>
-                        <div class="scale-row">
-                            <div class="scale-bar" style="background:#ff0000"></div>
-                            <div class="scale-info">
-                                <span class="scale-label">151–200</span>
-                                <span class="scale-name">Unhealthy</span>
-                            </div>
+                        <div id="heatmap-container"></div>
+                    </div>
+                </div>
+
+                <div class="right-col">
+                    <div class="card top5-box">
+                        <div class="card-header">
+                            <h2>TOP 5 MOST POLLUTED</h2>
+                            <p class="subtitle" id="pollutant-name-txt">Overall AQI</p>
                         </div>
-                        <div class="scale-row">
-                            <div class="scale-bar" style="background:#8f3f97"></div>
-                            <div class="scale-info">
-                                <span class="scale-label">200+</span>
-                                <span class="scale-name">Very Unhealthy / Hazardous</span>
+                        <div id="top-5-list"></div>
+                    </div>
+
+                    <div class="card info-box">
+                        <h2>AQI SCALE</h2>
+                        <div class="aqi-scale">
+                            <div class="scale-row">
+                                <div class="scale-bar" style="background:#00e400"></div>
+                                <div class="scale-info">
+                                    <span class="scale-label">0–50</span>
+                                    <span class="scale-name">Good</span>
+                                </div>
+                            </div>
+
+                            <div class="scale-row">
+                                <div class="scale-bar" style="background:#ffff00"></div>
+                                <div class="scale-info">
+                                    <span class="scale-label">51–100</span>
+                                    <span class="scale-name">Moderate</span>
+                                </div>
+                            </div>
+
+                            <div class="scale-row">
+                                <div class="scale-bar" style="background:#ff7e00"></div>
+                                <div class="scale-info">
+                                    <span class="scale-label">101–150</span>
+                                    <span class="scale-name">Unhealthy for Sensitive Groups</span>
+                                </div>
+                            </div>
+
+                            <div class="scale-row">
+                                <div class="scale-bar" style="background:#ff0000"></div>
+                                <div class="scale-info">
+                                    <span class="scale-label">151–200</span>
+                                    <span class="scale-name">Unhealthy</span>
+                                </div>
+                            </div>
+
+                            <div class="scale-row">
+                                <div class="scale-bar" style="background:#8f3f97"></div>
+                                <div class="scale-info">
+                                    <span class="scale-label">200+</span>
+                                    <span class="scale-name">Very Unhealthy / Hazardous</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <div id="tooltip" class="tooltip-container"></div>
+
     <script src="app.js"></script>
 </body>
 </html>
