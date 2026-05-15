@@ -85,7 +85,7 @@ https://aqs.epa.gov/aqsweb/airdata/download_files.html
 
 ### Dataset Size
 
-* 600,000+ records
+* 1,400,000+ records
 * 50 U.S. states
 * Aggregated yearly averages
 
