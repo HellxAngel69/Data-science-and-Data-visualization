@@ -210,7 +210,7 @@ Contains:
 # Course Information
 
 **Course:** Data Science and Data Visualization
-**University:** Vietnam National University Ho Chi Minh City — International University
+**University:** Vietnam National University Ho Chi Minh City - International University
 
 ---
 
